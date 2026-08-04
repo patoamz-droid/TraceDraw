@@ -47,6 +47,137 @@ input {
   overflow: hidden;
 }
 
+.splash-screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #000000;
+  color: #f7f8fc;
+  z-index: 20;
+  pointer-events: none;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.splash-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(102, 217, 255, 0.16), transparent 58%);
+  filter: blur(40px);
+  opacity: 0.9;
+}
+
+.splash-screen--entering {
+  animation: splashIn 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.splash-screen--visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.splash-screen--exiting {
+  animation: splashOut 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.splash-screen--hidden {
+  opacity: 0;
+  transform: scale(1.01);
+  visibility: hidden;
+}
+
+.splash-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.splash-logo {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 30px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.splash-logo svg {
+  width: 54px;
+  height: 54px;
+}
+
+.splash-logo__frame {
+  fill: rgba(255, 255, 255, 0.04);
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 2;
+}
+
+.splash-logo__path {
+  fill: none;
+  stroke: #f7f8fc;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.splash-logo__path--short {
+  stroke-width: 3;
+}
+
+.splash-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.splash-title {
+  margin: 0;
+  font-size: clamp(2rem, 3.3vw, 2.65rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  font-weight: 700;
+}
+
+.splash-subtitle {
+  margin: 0;
+  font-size: 0.96rem;
+  color: rgba(247, 248, 252, 0.74);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+@keyframes splashIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splashOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+
 .camera-stage {
   position: relative;
   width: 100%;

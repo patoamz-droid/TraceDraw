@@ -81,6 +81,15 @@ const FocusIcon = () => (
   </svg>
 )
 
+const SplashLogo = () => (
+  <svg viewBox="0 0 120 120" aria-hidden="true">
+    <rect x="19" y="19" width="82" height="82" rx="26" className="splash-logo__frame" />
+    <path d="M36 78c8-20 16-30 24-30 8 0 12 10 20 22 5 7 13 11 20 11" className="splash-logo__path" />
+    <path d="M44 46h28" className="splash-logo__path splash-logo__path--short" />
+    <path d="M48 36h20" className="splash-logo__path splash-logo__path--short" />
+  </svg>
+)
+
 function App() {
   const [imageSrc, setImageSrc] = useState<string | null>(null)
   const [opacity, setOpacity] = useState(0.65)
@@ -92,6 +101,7 @@ function App() {
   const [autoSaveSession, setAutoSaveSession] = useState(false)
   const [isFocusMode, setIsFocusMode] = useState(false)
   const [focusCloseButtonState, setFocusCloseButtonState] = useState<'hidden' | 'visible' | 'hiding'>('hidden')
+  const [splashStage, setSplashStage] = useState<'entering' | 'visible' | 'exiting' | 'hidden'>('entering')
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -176,6 +186,18 @@ function App() {
         window.clearTimeout(focusCloseButtonTimeoutRef.current)
         focusCloseButtonTimeoutRef.current = null
       }
+    }
+  }, [])
+
+  useEffect(() => {
+    const enterTimer = window.setTimeout(() => setSplashStage('visible'), 300)
+    const exitTimer = window.setTimeout(() => setSplashStage('exiting'), 1800)
+    const hideTimer = window.setTimeout(() => setSplashStage('hidden'), 2300)
+
+    return () => {
+      window.clearTimeout(enterTimer)
+      window.clearTimeout(exitTimer)
+      window.clearTimeout(hideTimer)
     }
   }, [])
 
@@ -394,6 +416,21 @@ function App() {
 
   return (
     <div className="app-shell">
+      <div
+        className={`splash-screen ${splashStage === 'entering' ? 'splash-screen--entering' : ''} ${splashStage === 'visible' ? 'splash-screen--visible' : ''} ${splashStage === 'exiting' ? 'splash-screen--exiting' : ''} ${splashStage === 'hidden' ? 'splash-screen--hidden' : ''}`}
+        aria-hidden={splashStage === 'hidden'}
+      >
+        <div className="splash-card">
+          <div className="splash-logo">
+            <SplashLogo />
+          </div>
+          <div className="splash-copy">
+            <h1 className="splash-title">TraceDraw</h1>
+            <p className="splash-subtitle">Professional Drawing Tool</p>
+          </div>
+        </div>
+      </div>
+
       <div className="camera-stage">
         <video
           ref={videoRef}
