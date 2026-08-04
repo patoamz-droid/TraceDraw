@@ -1,40 +1,32 @@
-# TraceDraw
-Publico
-# TraceDraw
+# React + TypeScript + Vite
 
-TraceDraw es una aplicación para ayudar a calcar dibujos utilizando la cámara del teléfono.
+This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
-## Objetivo
+Currently, two official plugins are available:
 
-Superponer una imagen sobre la cámara para facilitar el calcado con precisión.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## Funciones (MVP)
+## React Compiler
 
-- 📷 Cámara en vivo
-- 🖼️ Elegir imagen desde la galería
-- 🌫️ Ajustar transparencia
-- 🤏 Zoom
-- ✋ Mover imagen
-- 🔄 Rotar imagen
-- 🔒 Bloquear posición
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Funciones futuras
+## Expanding the Oxlint configuration
 
-- Conversión de foto a líneas
-- Blanco y negro
-- Contraste
-- Cuadrícula
-- Modo dibujo
-- Modo pantalla limpia
-- Guardado de proyectos
+If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
 
-## Tecnologías
+```json
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "oxc"],
+  "options": {
+    "typeAware": true
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+  }
+}
+```
 
-- React
-- TypeScript
-- Vite
-- PWA
-
-## Estado del proyecto
-
-🚧 En desarrollo
+See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
