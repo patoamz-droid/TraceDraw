@@ -197,6 +197,9 @@ function App() {
     }
   }, [])
 
+  const cameraIsVisible = splashStage === 'exiting' || splashStage === 'hidden'
+  const toolbarIsVisible = splashStage === 'exiting' || splashStage === 'hidden'
+
   const applyTransformToOverlay = (nextTransform: Transform) => {
     transformRef.current = nextTransform
     if (overlayRef.current) {
@@ -427,7 +430,7 @@ function App() {
         </div>
       </div>
 
-      <div className="camera-stage">
+      <div className={`camera-stage ${cameraIsVisible ? 'camera-stage--visible' : ''}`}>
         <video
           ref={videoRef}
           className="camera-view"
@@ -493,7 +496,7 @@ function App() {
         </div>
 
         {isFocusMode ? null : (
-          <div className="floating-toolbar" role="toolbar" aria-label="Trace controls">
+          <div className={`floating-toolbar ${toolbarIsVisible ? 'floating-toolbar--visible' : ''}`} role="toolbar" aria-label="Trace controls">
           <div className="toolbar-copy">
             <span className="toolbar-label">Trace controls</span>
             <span className="toolbar-hint">
