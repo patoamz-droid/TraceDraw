@@ -82,6 +82,18 @@ const FocusIcon = () => (
   </svg>
 )
 
+const MirrorIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M8 4 4 8l4 4M16 4l4 4-4 4M12 4v16M4 12h16" />
+  </svg>
+)
+
+const RotateIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M21 12a9 9 0 1 1-2.6-6.2L21 3v6h-6" />
+  </svg>
+)
+
 const SplashLogo = () => (
   <img src={splashImage} alt="" className="splash-logo__image" aria-hidden="true" />
 )
@@ -97,7 +109,11 @@ function App() {
   const [autoSaveSession, setAutoSaveSession] = useState(false)
   const [isFocusMode, setIsFocusMode] = useState(false)
   const [focusCloseButtonState, setFocusCloseButtonState] = useState<'hidden' | 'visible' | 'hiding'>('hidden')
+  const [isMirrored, setIsMirrored] = useState(false)
   const [splashStage, setSplashStage] = useState<'entering' | 'visible' | 'exiting' | 'hidden'>('entering')
+  const [moreMenuState, setMoreMenuState] = useState<'closed' | 'opening' | 'open' | 'closing'>('closed')
+  const [moreMenuDragOffset, setMoreMenuDragOffset] = useState(0)
+  const [lockIconAnimating, setLockIconAnimating] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -108,6 +124,9 @@ function App() {
   const overlayRef = useRef<HTMLDivElement | null>(null)
   const focusCloseButtonTimeoutRef = useRef<number | null>(null)
   const preFocusUiStateRef = useRef({ showOpacityControl: false, showMoreMenu: false })
+  const moreMenuAnimationTimeoutRef = useRef<number | null>(null)
+  const moreMenuPointerIdRef = useRef<number | null>(null)
+  const moreMenuStartYRef = useRef(0)
   const transformRef = useRef<Transform>(defaultTransform)
   const pendingTransformRef = useRef<Transform>(defaultTransform)
   const rafRef = useRef<number | null>(null)
@@ -182,8 +201,21 @@ function App() {
         window.clearTimeout(focusCloseButtonTimeoutRef.current)
         focusCloseButtonTimeoutRef.current = null
       }
+      if (moreMenuAnimationTimeoutRef.current !== null) {
+        window.clearTimeout(moreMenuAnimationTimeoutRef.current)
+        moreMenuAnimationTimeoutRef.current = null
+      }
     }
   }, [])
+
+  useEffect(() => {
+    if (!lockIconAnimating) {
+      return
+    }
+
+    const timer = window.setTimeout(() => setLockIconAnimating(false), 120)
+    return () => window.clearTimeout(timer)
+  }, [lockIconAnimating])
 
   useEffect(() => {
     const enterTimer = window.setTimeout(() => setSplashStage('visible'), 300)
@@ -199,6 +231,95 @@ function App() {
 
   const cameraIsVisible = splashStage === 'exiting' || splashStage === 'hidden'
   const toolbarIsVisible = splashStage === 'exiting' || splashStage === 'hidden'
+
+  const triggerHapticFeedback = () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate?.(1)
+    }
+  }
+
+  const openMoreMenu = () => {
+    if (moreMenuState === 'open' || moreMenuState === 'opening') {
+      return
+    }
+
+    triggerHapticFeedback()
+    setShowOpacityControl(false)
+    setShowMoreMenu(true)
+    setMoreMenuDragOffset(0)
+    setMoreMenuState('opening')
+
+    if (moreMenuAnimationTimeoutRef.current !== null) {
+      window.clearTimeout(moreMenuAnimationTimeoutRef.current)
+    }
+
+    moreMenuAnimationTimeoutRef.current = window.setTimeout(() => {
+      setMoreMenuState('open')
+      moreMenuAnimationTimeoutRef.current = null
+    }, 20)
+  }
+
+  const closeMoreMenu = () => {
+    if (moreMenuState === 'closed' || moreMenuState === 'closing') {
+      return
+    }
+
+    triggerHapticFeedback()
+    setMoreMenuDragOffset(0)
+    setMoreMenuState('closing')
+
+    if (moreMenuAnimationTimeoutRef.current !== null) {
+      window.clearTimeout(moreMenuAnimationTimeoutRef.current)
+    }
+
+    moreMenuAnimationTimeoutRef.current = window.setTimeout(() => {
+      setMoreMenuState('closed')
+      setShowMoreMenu(false)
+      moreMenuAnimationTimeoutRef.current = null
+    }, 180)
+  }
+
+  const handleMoreMenuToggle = () => {
+    if (moreMenuState === 'open' || moreMenuState === 'opening') {
+      closeMoreMenu()
+    } else {
+      openMoreMenu()
+    }
+  }
+
+  const handleMoreMenuPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (moreMenuState !== 'open' && moreMenuState !== 'opening') {
+      return
+    }
+
+    moreMenuPointerIdRef.current = event.pointerId
+    moreMenuStartYRef.current = event.clientY
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const handleMoreMenuPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (moreMenuPointerIdRef.current !== event.pointerId) {
+      return
+    }
+
+    const deltaY = event.clientY - moreMenuStartYRef.current
+    if (deltaY > 0) {
+      setMoreMenuDragOffset(deltaY)
+    }
+  }
+
+  const handleMoreMenuPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (moreMenuPointerIdRef.current !== event.pointerId) {
+      return
+    }
+
+    moreMenuPointerIdRef.current = null
+    if (moreMenuDragOffset > 120) {
+      closeMoreMenu()
+    } else {
+      setMoreMenuDragOffset(0)
+    }
+  }
 
   const applyTransformToOverlay = (nextTransform: Transform) => {
     transformRef.current = nextTransform
@@ -221,41 +342,45 @@ function App() {
   }
 
   const resetTransform = () => {
+    triggerHapticFeedback()
+    setIsMirrored(false)
     const nextTransform = defaultTransform
     applyTransformToOverlay(nextTransform)
     pendingTransformRef.current = nextTransform
   }
 
-  const resetRotation = () => {
-    const nextTransform = {
-      ...transformRef.current,
-      rotation: defaultTransform.rotation,
-    }
-    applyTransformToOverlay(nextTransform)
-    pendingTransformRef.current = nextTransform
+  const handleFlipImage = () => {
+    triggerHapticFeedback()
+    setIsMirrored((current) => !current)
   }
 
-  const resetZoom = () => {
+  const handleRotate90 = () => {
+    triggerHapticFeedback()
+    const normalizedRotation = ((transformRef.current.rotation % 360) + 360) % 360
     const nextTransform = {
       ...transformRef.current,
-      scale: defaultTransform.scale,
+      rotation: (normalizedRotation + 90) % 360,
     }
     applyTransformToOverlay(nextTransform)
     pendingTransformRef.current = nextTransform
   }
 
   const enterFocusMode = () => {
+    triggerHapticFeedback()
     preFocusUiStateRef.current = {
       showOpacityControl,
       showMoreMenu,
     }
     setShowOpacityControl(false)
     setShowMoreMenu(false)
+    setMoreMenuState('closed')
+    setMoreMenuDragOffset(0)
     setIsFocusMode(true)
     setFocusCloseButtonState('visible')
   }
 
   const exitFocusMode = () => {
+    triggerHapticFeedback()
     if (focusCloseButtonTimeoutRef.current !== null) {
       window.clearTimeout(focusCloseButtonTimeoutRef.current)
     }
@@ -284,6 +409,7 @@ function App() {
     setImageSrc(url)
     setImageLoaded(false)
     setIsLocked(false)
+    setIsMirrored(false)
     setShowOpacityControl(false)
     setShowMoreMenu(false)
     applyTransformToOverlay(defaultTransform)
@@ -298,8 +424,14 @@ function App() {
     event.target.value = ''
   }
 
-  const openGallery = () => fileInputRef.current?.click()
-  const openCameraPicker = () => cameraInputRef.current?.click()
+  const openGallery = () => {
+    triggerHapticFeedback()
+    fileInputRef.current?.click()
+  }
+  const openCameraPicker = () => {
+    triggerHapticFeedback()
+    cameraInputRef.current?.click()
+  }
 
   const beginPan = (point: Point) => {
     gesture.current.mode = 'pan'
@@ -412,6 +544,7 @@ function App() {
   }
 
   const showInstructionCards = !isFocusMode && (!imageSrc || !imageLoaded)
+  const isMoreMenuVisible = moreMenuState !== 'closed'
 
   return (
     <div className="app-shell">
@@ -460,6 +593,7 @@ function App() {
                 alt="Tracing stencil overlay"
                 draggable={false}
                 className="trace-image"
+                style={{ transform: isMirrored ? 'scaleX(-1)' : 'none' }}
                 onLoad={() => setImageLoaded(true)}
               />
               {!imageLoaded && (
@@ -522,18 +656,27 @@ function App() {
             </button>
             <button
               className={`icon-button ${isLocked ? 'active' : ''}`}
-              onClick={() => setIsLocked((current) => !current)}
+              onClick={() => {
+                triggerHapticFeedback()
+                setLockIconAnimating(true)
+                setIsLocked((current) => !current)
+              }}
               disabled={!imageSrc}
               aria-label="Lock overlay"
               title="Lock overlay"
             >
-              {isLocked ? <LockIcon /> : <UnlockIcon />}
+              <span className={`icon-button-icon ${lockIconAnimating ? 'icon-button-icon--animating' : ''}`}>
+                {isLocked ? <LockIcon /> : <UnlockIcon />}
+              </span>
             </button>
             <button
               className={`icon-button ${showOpacityControl ? 'active' : ''}`}
               onClick={() => {
+                triggerHapticFeedback()
                 setShowOpacityControl((current) => !current)
                 setShowMoreMenu(false)
+                setMoreMenuState('closed')
+                setMoreMenuDragOffset(0)
               }}
               disabled={!imageSrc}
               aria-label="Adjust opacity"
@@ -551,10 +694,7 @@ function App() {
             </button>
             <button
               className={`icon-button ${showMoreMenu ? 'active' : ''}`}
-              onClick={() => {
-                setShowMoreMenu((current) => !current)
-                setShowOpacityControl(false)
-              }}
+              onClick={handleMoreMenuToggle}
               aria-label="Advanced tools"
               title="Advanced tools"
             >
@@ -587,52 +727,73 @@ function App() {
               min="0"
               max="100"
               value={Math.round(opacity * 100)}
-              onChange={(event) => setOpacity(Number(event.target.value) / 100)}
+              onChange={(event) => {
+                triggerHapticFeedback()
+                setOpacity(Number(event.target.value) / 100)
+              }}
               aria-label="Overlay opacity"
             />
           </div>
         ) : null}
 
-        {showMoreMenu && !isFocusMode ? (
-          <div className="compact-sheet compact-sheet--tools" role="dialog" aria-label="Advanced tools">
-            <div className="sheet-handle" />
-            <div className="sheet-title">Advanced tools</div>
-            <div className="sheet-option-row">
-              <div>
-                <p className="sheet-option-title">Precision Mode</p>
-                <p className="sheet-text">Fine-tune small moves with greater control.</p>
+        {isMoreMenuVisible && !isFocusMode ? (
+          <>
+            <div className={`more-menu-backdrop ${moreMenuState === 'open' || moreMenuState === 'opening' ? 'more-menu-backdrop--visible' : ''}`} onPointerDown={closeMoreMenu} />
+            <div
+              className={`compact-sheet compact-sheet--tools ${moreMenuState === 'opening' ? 'compact-sheet--opening' : ''} ${moreMenuState === 'open' ? 'compact-sheet--open' : ''} ${moreMenuState === 'closing' ? 'compact-sheet--closing' : ''}`}
+              role="dialog"
+              aria-label="Advanced tools"
+              onPointerDown={handleMoreMenuPointerDown}
+              onPointerMove={handleMoreMenuPointerMove}
+              onPointerUp={handleMoreMenuPointerUp}
+              onPointerCancel={handleMoreMenuPointerUp}
+              style={{ ['--sheet-drag-y' as string]: `${moreMenuDragOffset}px` }}
+            >
+              <div className="sheet-handle" />
+              <div className="sheet-title">Advanced tools</div>
+              <div className="sheet-option-row">
+                <div>
+                  <p className="sheet-option-title">Precision Mode</p>
+                  <p className="sheet-text">Fine-tune small moves with greater control.</p>
+                </div>
+                <button
+                  className={`sheet-toggle ${precisionMode ? 'on' : ''}`}
+                  onClick={() => setPrecisionMode((current) => !current)}
+                  aria-pressed={precisionMode}
+                >
+                  <span />
+                </button>
               </div>
-              <button
-                className={`sheet-toggle ${precisionMode ? 'on' : ''}`}
-                onClick={() => setPrecisionMode((current) => !current)}
-                aria-pressed={precisionMode}
-              >
-                <span />
+              <div className="sheet-option-row">
+                <div>
+                  <p className="sheet-option-title">Auto Save Session</p>
+                  <p className="sheet-text">Keep your current placement for later.</p>
+                </div>
+                <button
+                  className={`sheet-toggle ${autoSaveSession ? 'on' : ''}`}
+                  onClick={() => setAutoSaveSession((current) => !current)}
+                  aria-pressed={autoSaveSession}
+                >
+                  <span />
+                </button>
+              </div>
+              <button className="sheet-action" onClick={resetTransform}>
+                Reset Position
+              </button>
+              <button className="sheet-action" onClick={handleFlipImage}>
+                <span className="sheet-action__row">
+                  <span>Flip Image</span>
+                  <MirrorIcon />
+                </span>
+              </button>
+              <button className="sheet-action" onClick={handleRotate90}>
+                <span className="sheet-action__row">
+                  <span>Rotate 90°</span>
+                  <RotateIcon />
+                </span>
               </button>
             </div>
-            <div className="sheet-option-row">
-              <div>
-                <p className="sheet-option-title">Auto Save Session</p>
-                <p className="sheet-text">Keep your current placement for later.</p>
-              </div>
-              <button
-                className={`sheet-toggle ${autoSaveSession ? 'on' : ''}`}
-                onClick={() => setAutoSaveSession((current) => !current)}
-                aria-pressed={autoSaveSession}
-              >
-                <span />
-              </button>
-            </div>
-            <button className="sheet-action" onClick={resetTransform}>
-              Reset Position
-            </button>
-            <button className="sheet-action" onClick={resetRotation}>
-              Reset Rotation
-            </button>
-            <button className="sheet-action" onClick={resetZoom}>
-              Reset Zoom
-            </button>
-          </div>
+          </>
         ) : null}
       </div>
 
