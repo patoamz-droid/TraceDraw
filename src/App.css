@@ -111,9 +111,12 @@ input {
   -webkit-backdrop-filter: blur(20px);
 }
 
-.splash-logo svg {
+.splash-logo__image {
   width: 54px;
   height: 54px;
+  object-fit: cover;
+  border-radius: 18px;
+  display: block;
 }
 
 .splash-logo__frame {

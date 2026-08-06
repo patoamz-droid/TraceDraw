@@ -6,6 +6,7 @@ import {
   type PointerEvent,
 } from 'react'
 import './App.css'
+import splashImage from '/IMG_2880.png'
 
 type Transform = {
   x: number
@@ -82,12 +83,7 @@ const FocusIcon = () => (
 )
 
 const SplashLogo = () => (
-  <svg viewBox="0 0 120 120" aria-hidden="true">
-    <rect x="19" y="19" width="82" height="82" rx="26" className="splash-logo__frame" />
-    <path d="M36 78c8-20 16-30 24-30 8 0 12 10 20 22 5 7 13 11 20 11" className="splash-logo__path" />
-    <path d="M44 46h28" className="splash-logo__path splash-logo__path--short" />
-    <path d="M48 36h20" className="splash-logo__path splash-logo__path--short" />
-  </svg>
+  <img src={splashImage} alt="" className="splash-logo__image" aria-hidden="true" />
 )
 
 function App() {
