@@ -102,6 +102,7 @@ function App() {
   const [moreMenuState, setMoreMenuState] = useState<'closed' | 'opening' | 'open' | 'closing'>('closed')
   const [moreMenuDragOffset, setMoreMenuDragOffset] = useState(0)
   const [lockIconAnimating, setLockIconAnimating] = useState(false)
+  const [opacitySheetState, setOpacitySheetState] = useState<'closed' | 'opening' | 'open' | 'closing'>('closed')
 
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -114,6 +115,7 @@ function App() {
   const preFocusUiStateRef = useRef({ showOpacityControl: false, showMoreMenu: false })
   const moreMenuAnimationTimeoutRef = useRef<number | null>(null)
   const moreMenuPointerIdRef = useRef<number | null>(null)
+  const opacityAnimationTimeoutRef = useRef<number | null>(null)
   const moreMenuStartYRef = useRef(0)
   const transformRef = useRef<Transform>(defaultTransform)
   const pendingTransformRef = useRef<Transform>(defaultTransform)
@@ -193,8 +195,44 @@ function App() {
         window.clearTimeout(moreMenuAnimationTimeoutRef.current)
         moreMenuAnimationTimeoutRef.current = null
       }
+      if (opacityAnimationTimeoutRef.current !== null) {
+        window.clearTimeout(opacityAnimationTimeoutRef.current)
+        opacityAnimationTimeoutRef.current = null
+      }
     }
   }, [])
+
+  useEffect(() => {
+    if (showOpacityControl) {
+      // begin opening
+      setOpacitySheetState('opening')
+
+      if (opacityAnimationTimeoutRef.current !== null) {
+        window.clearTimeout(opacityAnimationTimeoutRef.current)
+      }
+
+      opacityAnimationTimeoutRef.current = window.setTimeout(() => {
+        setOpacitySheetState('open')
+        opacityAnimationTimeoutRef.current = null
+      }, 20)
+    } else {
+      // begin closing
+      if (opacitySheetState === 'closed' || opacitySheetState === 'closing') {
+        return
+      }
+
+      setOpacitySheetState('closing')
+
+      if (opacityAnimationTimeoutRef.current !== null) {
+        window.clearTimeout(opacityAnimationTimeoutRef.current)
+      }
+
+      opacityAnimationTimeoutRef.current = window.setTimeout(() => {
+        setOpacitySheetState('closed')
+        opacityAnimationTimeoutRef.current = null
+      }, 180)
+    }
+  }, [showOpacityControl])
 
   useEffect(() => {
     if (!lockIconAnimating) {
@@ -707,8 +745,12 @@ function App() {
           </button>
         ) : null}
 
-        {showOpacityControl && !isFocusMode ? (
-          <div className="compact-sheet" role="dialog" aria-label="Opacity controls">
+        {opacitySheetState !== 'closed' && !isFocusMode ? (
+          <div
+            className={`compact-sheet ${opacitySheetState === 'opening' ? 'compact-sheet--opening' : ''} ${opacitySheetState === 'open' ? 'compact-sheet--open' : ''} ${opacitySheetState === 'closing' ? 'compact-sheet--closing' : ''}`}
+            role="dialog"
+            aria-label="Opacity controls"
+          >
             <div className="sheet-title">Overlay opacity</div>
             <input
               className="opacity-input"
