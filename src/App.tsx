@@ -40,12 +40,6 @@ const centerPoint = (a: Point, b: Point) => ({
 const toOverlayTransform = (transform: Transform) =>
   `translate(-50%, -50%) translate3d(${transform.x}px, ${transform.y}px, 0) rotate(${transform.rotation}deg) scale(${transform.scale})`
 
-const CameraIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M4 7h3l1.2-2.3A2 2 0 0 1 10 4h4a2 2 0 0 1 1.8 1.1L17 7h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Zm8 2.5A4.5 4.5 0 1 0 16.5 14 4.5 4.5 0 0 0 12 9.5Zm0 2A2.5 2.5 0 1 1 9.5 14 2.5 2.5 0 0 1 12 11.5Z" />
-  </svg>
-)
-
 const GalleryIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 3v8h10V7Zm2 2h6v2H9Zm0 4h4v2H9Z" />
@@ -73,12 +67,6 @@ const OpacityIcon = () => (
 const MoreIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M6 12a2 2 0 1 1-2-2 2 2 0 0 1 2 2Zm7 0a2 2 0 1 1-2-2 2 2 0 0 1 2 2Zm7 0a2 2 0 1 1-2-2 2 2 0 0 1 2 2Z" />
-  </svg>
-)
-
-const FocusIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M12 3a1 1 0 0 1 1 1v2.2a6.8 6.8 0 0 1 6.8 6.8H22a1 1 0 0 1 1 1 1 1 0 0 1-1 1h-2.2A6.8 6.8 0 0 1 13 20.8V23a1 1 0 0 1-1 1 1 1 0 0 1-1-1v-2.2A6.8 6.8 0 0 1 4.2 13H2a1 1 0 0 1-1-1 1 1 0 0 1 1-1h2.2A6.8 6.8 0 0 1 11 4.2V2a1 1 0 0 1 1-1Zm0 4.8A4.2 4.2 0 0 0 7.8 12 4.2 4.2 0 0 0 12 16.2 4.2 4.2 0 0 0 16.2 12 4.2 4.2 0 0 0 12 7.8Z" />
   </svg>
 )
 
@@ -354,6 +342,20 @@ function App() {
     setIsMirrored((current) => !current)
   }
 
+  const handleLockToggle = () => {
+    triggerHapticFeedback()
+    setLockIconAnimating(true)
+    setIsLocked((current) => !current)
+  }
+
+  const handleOpacityToggle = () => {
+    triggerHapticFeedback()
+    setShowOpacityControl((current) => !current)
+    setShowMoreMenu(false)
+    setMoreMenuState('closed')
+    setMoreMenuDragOffset(0)
+  }
+
   const handleRotate90 = () => {
     triggerHapticFeedback()
     const normalizedRotation = ((transformRef.current.rotation % 360) + 360) % 360
@@ -427,10 +429,6 @@ function App() {
   const openGallery = () => {
     triggerHapticFeedback()
     fileInputRef.current?.click()
-  }
-  const openCameraPicker = () => {
-    triggerHapticFeedback()
-    cameraInputRef.current?.click()
   }
 
   const beginPan = (point: Point) => {
@@ -545,6 +543,7 @@ function App() {
 
   const showInstructionCards = !isFocusMode && (!imageSrc || !imageLoaded)
   const isMoreMenuVisible = moreMenuState !== 'closed'
+  const moreMenuOpen = moreMenuState === 'opening' || moreMenuState === 'open'
 
   return (
     <div className="app-shell">
@@ -602,7 +601,7 @@ function App() {
             </div>
           ) : (
             showInstructionCards ? (
-              <div className="empty-state">
+              <div className={`empty-state ${moreMenuOpen ? 'empty-state--dimmed' : ''}`}>
                 <div className="empty-card">
                   <div className="empty-badge">Live tracing mode</div>
                   <p className="empty-title">Trace on top of the live camera.</p>
@@ -640,14 +639,6 @@ function App() {
           <div className="toolbar-actions">
             <button
               className="icon-button"
-              onClick={openCameraPicker}
-              aria-label="Capture from camera"
-              title="Capture from camera"
-            >
-              <CameraIcon />
-            </button>
-            <button
-              className="icon-button"
               onClick={openGallery}
               aria-label="Replace image"
               title="Replace image"
@@ -655,12 +646,16 @@ function App() {
               <GalleryIcon />
             </button>
             <button
+              className="icon-button"
+              onClick={handleFlipImage}
+              aria-label="Flip image"
+              title="Flip image"
+            >
+              <MirrorIcon />
+            </button>
+            <button
               className={`icon-button ${isLocked ? 'active' : ''}`}
-              onClick={() => {
-                triggerHapticFeedback()
-                setLockIconAnimating(true)
-                setIsLocked((current) => !current)
-              }}
+              onClick={handleLockToggle}
               disabled={!imageSrc}
               aria-label="Lock overlay"
               title="Lock overlay"
@@ -671,13 +666,7 @@ function App() {
             </button>
             <button
               className={`icon-button ${showOpacityControl ? 'active' : ''}`}
-              onClick={() => {
-                triggerHapticFeedback()
-                setShowOpacityControl((current) => !current)
-                setShowMoreMenu(false)
-                setMoreMenuState('closed')
-                setMoreMenuDragOffset(0)
-              }}
+              onClick={handleOpacityToggle}
               disabled={!imageSrc}
               aria-label="Adjust opacity"
               title="Adjust opacity"
@@ -685,15 +674,15 @@ function App() {
               <OpacityIcon />
             </button>
             <button
-              className={`icon-button ${isFocusMode ? 'active' : ''}`}
-              onClick={enterFocusMode}
-              aria-label="Focus mode"
-              title="Focus mode"
+              className="icon-button"
+              onClick={handleRotate90}
+              aria-label="Rotate 90 degrees"
+              title="Rotate 90°"
             >
-              <FocusIcon />
+              <RotateIcon />
             </button>
             <button
-              className={`icon-button ${showMoreMenu ? 'active' : ''}`}
+              className={`icon-button ${moreMenuOpen ? 'active' : ''}`}
               onClick={handleMoreMenuToggle}
               aria-label="Advanced tools"
               title="Advanced tools"
@@ -777,20 +766,27 @@ function App() {
                   <span />
                 </button>
               </div>
-              <button className="sheet-action" onClick={resetTransform}>
+              <div className="sheet-option-row">
+                <div>
+                  <p className="sheet-option-title">Focus Mode</p>
+                  <p className="sheet-text">Hide the extra controls and keep the canvas clear.</p>
+                </div>
+                <button
+                  className={`sheet-toggle ${isFocusMode ? 'on' : ''}`}
+                  onClick={() => {
+                    if (isFocusMode) {
+                      exitFocusMode()
+                    } else {
+                      enterFocusMode()
+                    }
+                  }}
+                  aria-pressed={isFocusMode}
+                >
+                  <span />
+                </button>
+              </div>
+              <button className="sheet-action sheet-action--destructive" onClick={resetTransform}>
                 Reset Position
-              </button>
-              <button className="sheet-action" onClick={handleFlipImage}>
-                <span className="sheet-action__row">
-                  <span>Flip Image</span>
-                  <MirrorIcon />
-                </span>
-              </button>
-              <button className="sheet-action" onClick={handleRotate90}>
-                <span className="sheet-action__row">
-                  <span>Rotate 90°</span>
-                  <RotateIcon />
-                </span>
               </button>
             </div>
           </>
